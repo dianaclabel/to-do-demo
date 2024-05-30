@@ -15,7 +15,8 @@ export default function Index() {
       <Text>Edit app/index.tsx to edit this window.</Text>
       <ExternalLink href="https://duna.dev">Duna</ExternalLink>
       <Counter nombre="a todos" apellido="Clabel" edad={25}></Counter>
-      <Link href={"Contacto"}>Contacto</Link>
+      <Link href={"contacto"}>Contacto</Link>
+      <Link href={"todo"}>todo</Link>
     </View>
   );
 }
