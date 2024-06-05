@@ -19,33 +19,51 @@ export default function Todo() {
 
   const [text, setText] = useState("");
 
-  const addTask = () => {
+  const [creating, setCreating] = useState(false);
+
+  const [deleting, setDeleting] = useState<TaskItem[]>([]);
+
+  const addTask = async () => {
+    if (creating) return;
     if (text.trim() !== "") {
-      setTasks([...tasks, { task: text, id: crypto.randomUUID() }]);
+      setCreating(true);
+      const payload = new FormData();
+      payload.set("task", text);
+
+      await fetch("https://todo-api.dianaclabel.com/agregar-task", {
+        method: "POST",
+        body: payload,
+      });
+
       setText("");
+
+      setCreating(false);
+
+      loadTasks();
     }
   };
 
-  const deleteTask = (itemToDelete: TaskItem) => {
-    const newArray = tasks.filter((item) => item !== itemToDelete);
+  const deleteTask = async (itemToDelete: TaskItem) => {
+    if (deleting.includes(itemToDelete)) return;
+    setDeleting([...deleting, itemToDelete]);
+    const url = new URL("https://todo-api.dianaclabel.com/borrar-task");
+    url.searchParams.set("id", itemToDelete.id);
 
-    setTasks(newArray);
+    await fetch(url, {
+      method: "DELETE",
+    });
+
+    await loadTasks();
+
+    setDeleting(deleting.filter((item) => item !== itemToDelete));
   };
 
   const loadTasks = async () => {
-    const res = await fetch("https://contactos-api.duna.dev/contactos");
+    const res = await fetch("https://todo-api.dianaclabel.com/tasks");
     if (res.ok) {
-      const data = (await res.json()) as { id: string; nombre: string }[];
+      const data = (await res.json()) as TaskItem[];
 
-      const initialTasks: TaskItem[] = data.map((item) => {
-        const itemObject: TaskItem = {
-          id: item.id,
-          task: item.nombre,
-        };
-        return itemObject;
-      });
-
-      setTasks(initialTasks);
+      setTasks(data);
     }
   };
 
@@ -66,8 +84,8 @@ export default function Todo() {
 
       <Pressable
         onPress={addTask}
-        style={[styles.addTask, !text && styles.addTaskDisabled]}
-        disabled={!text}
+        style={[styles.addTask, !text && styles.styleDisabled]}
+        disabled={!text || creating}
       >
         <Text style={styles.textTask}>Agregar</Text>
       </Pressable>
@@ -80,8 +98,9 @@ export default function Todo() {
             <Text>{item.task}</Text>
             <Button
               title="x"
-              color={"#ff5010"}
+              color={deleting.includes(item) ? "gray" : "#ff5010"}
               onPress={() => deleteTask(item)}
+              disabled={deleting.includes(item)}
             />
           </View>
         )}
@@ -139,7 +158,11 @@ const styles = StyleSheet.create({
     color: "white",
   },
 
-  addTaskDisabled: {
+  styleDisabled: {
     backgroundColor: "gray",
   },
 });
+
+//crear y eliminar
+//usar enpoint de contactos: antes de enviar se debe transformar un task a un contacto, no se va a guardar directamente en el state, en su
+//lugar se va a volver a ejecutar la funcion loadTasks
